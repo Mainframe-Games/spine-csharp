@@ -1,16 +1,16 @@
 /******************************************************************************
  * Spine Runtimes License Agreement
- * Last updated July 28, 2023. Replaces all prior versions.
+ * Last updated April 5, 2025. Replaces all prior versions.
  *
- * Copyright (c) 2013-2023, Esoteric Software LLC
+ * Copyright (c) 2013-2026, Esoteric Software LLC
  *
  * Integration of the Spine Runtimes into software or otherwise creating
  * derivative works of the Spine Runtimes is permitted under the terms and
  * conditions of Section 2 of the Spine Editor License Agreement:
  * http://esotericsoftware.com/spine-editor-license
  *
- * Otherwise, it is permitted to integrate the Spine Runtimes into software or
- * otherwise create derivative works of the Spine Runtimes (collectively,
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
  * "Products"), provided that each user of the Products must obtain their own
  * Spine Editor license and redistribution of the Products in any form must
  * include this license and copyright notice.
@@ -23,8 +23,8 @@
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
  * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE
- * SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 using System;
@@ -40,10 +40,7 @@ namespace Spine {
 		internal Skin defaultSkin;
 		internal ExposedList<EventData> events = new ExposedList<EventData>();
 		internal ExposedList<Animation> animations = new ExposedList<Animation>();
-		internal ExposedList<IkConstraintData> ikConstraints = new ExposedList<IkConstraintData>();
-		internal ExposedList<TransformConstraintData> transformConstraints = new ExposedList<TransformConstraintData>();
-		internal ExposedList<PathConstraintData> pathConstraints = new ExposedList<PathConstraintData>();
-		internal ExposedList<PhysicsConstraintData> physicsConstraints = new ExposedList<PhysicsConstraintData>();
+		internal ExposedList<IConstraintData> constraints = new ExposedList<IConstraintData>();
 		internal float x, y, width, height, referenceScale = 100;
 		internal string version, hash;
 
@@ -75,14 +72,9 @@ namespace Spine {
 		public ExposedList<EventData> Events { get { return events; } set { events = value; } }
 		/// <summary>The skeleton's animations.</summary>
 		public ExposedList<Animation> Animations { get { return animations; } set { animations = value; } }
-		/// <summary>The skeleton's IK constraints.</summary>
-		public ExposedList<IkConstraintData> IkConstraints { get { return ikConstraints; } set { ikConstraints = value; } }
+		/// <summary>The skeleton's constraints.</summary>
+		public ExposedList<IConstraintData> Constraints { get { return constraints; } }
 		/// <summary>The skeleton's transform constraints.</summary>
-		public ExposedList<TransformConstraintData> TransformConstraints { get { return transformConstraints; } set { transformConstraints = value; } }
-		/// <summary>The skeleton's path constraints.</summary>
-		public ExposedList<PathConstraintData> PathConstraints { get { return pathConstraints; } set { pathConstraints = value; } }
-		/// <summary>The skeleton's physics constraints.</summary>
-		public ExposedList<PhysicsConstraintData> PhysicsConstraints { get { return physicsConstraints; } set { physicsConstraints = value; } }
 
 		public float X { get { return x; } set { x = value; } }
 		public float Y { get { return y; } set { y = value; } }
@@ -100,17 +92,16 @@ namespace Spine {
 		/// May be null.</summary>
 		public string Hash { get { return hash; } set { hash = value; } }
 
+		/// <summary>The path to the images folder as defined in Spine, or null if nonessential data was not exported.</summary>
 		public string ImagesPath { get { return imagesPath; } set { imagesPath = value; } }
 
-		/// <summary> The path to the audio directory as defined in Spine. Available only when nonessential data was exported.
-		/// May be null.</summary>
+		/// <summary>The path to the audio folder as defined in Spine, or null if nonessential data was not exported.</summary>
 		public string AudioPath { get { return audioPath; } set { audioPath = value; } }
 
 		/// <summary>The dopesheet FPS in Spine, or zero if nonessential data was not exported.</summary>
 		public float Fps { get { return fps; } set { fps = value; } }
 
 		// --- Bones
-
 		/// <summary>
 		/// Finds a bone by comparing each bone's name.
 		/// It is more efficient to cache the results of this method than to call it multiple times.</summary>
@@ -126,7 +117,6 @@ namespace Spine {
 		}
 
 		// --- Slots
-
 		/// <returns>May be null.</returns>
 		public SlotData FindSlot (string slotName) {
 			if (slotName == null) throw new ArgumentNullException("slotName", "slotName cannot be null.");
@@ -139,7 +129,6 @@ namespace Spine {
 		}
 
 		// --- Skins
-
 		/// <returns>May be null.</returns>
 		public Skin FindSkin (string skinName) {
 			if (skinName == null) throw new ArgumentNullException("skinName", "skinName cannot be null.");
@@ -149,7 +138,6 @@ namespace Spine {
 		}
 
 		// --- Events
-
 		/// <returns>May be null.</returns>
 		public EventData FindEvent (string eventDataName) {
 			if (eventDataName == null) throw new ArgumentNullException("eventDataName", "eventDataName cannot be null.");
@@ -159,7 +147,24 @@ namespace Spine {
 		}
 
 		// --- Animations
+		/// <summary>
+		/// <para>Collects animations used by <see cref="SliderData">slider constraints</see>.</para>
+		/// <para>Slider animations are designed to be applied by slider constraints rather than on their own. Applications that have a user
+		/// choose an animation may want to exclude them.
+		/// </para></summary>
+		public ExposedList<Animation> FindSliderAnimations (ExposedList<Animation> animations) {
+			IConstraintData[] constraints = this.constraints.Items;
+			for (int i = 0, n = this.constraints.Count; i < n; i++) {
+				SliderData data = constraints[i] as SliderData;
+				if (data != null && data.animation != null)
+					animations.Add(data.animation);
+			}
+			return animations;
+		}
 
+		/// <summary>
+		/// Finds an animation by comparing each animation's name. It is more efficient to cache the results of this method than to
+		/// call it multiple times.</summary>
 		/// <returns>May be null.</returns>
 		public Animation FindAnimation (string animationName) {
 			if (animationName == null) throw new ArgumentNullException("animationName", "animationName cannot be null.");
@@ -171,67 +176,19 @@ namespace Spine {
 			return null;
 		}
 
-		// --- IK constraints
-
+		// --- Constraints
+		/// <summary>Finds a constraint of the specified type by comparing each constraint's name. It is more efficient to cache the
+		/// results of this method than to call it multiple times.</summary>
 		/// <returns>May be null.</returns>
-		public IkConstraintData FindIkConstraint (string constraintName) {
+		public T FindConstraint<T> (String constraintName) where T : class, IConstraintData {
 			if (constraintName == null) throw new ArgumentNullException("constraintName", "constraintName cannot be null.");
-			IkConstraintData[] ikConstraints = this.ikConstraints.Items;
-			for (int i = 0, n = this.ikConstraints.Count; i < n; i++) {
-				IkConstraintData ikConstraint = ikConstraints[i];
-				if (ikConstraint.name == constraintName) return ikConstraint;
+			IConstraintData[] constraints = this.constraints.Items;
+			for (int i = 0, n = this.constraints.Count; i < n; i++) {
+				T constraint = constraints[i] as T;
+				if (constraint != null && constraint.Name.Equals(constraintName)) return constraint;
 			}
 			return null;
 		}
-
-		// --- Transform constraints
-
-		/// <returns>May be null.</returns>
-		public TransformConstraintData FindTransformConstraint (string constraintName) {
-			if (constraintName == null) throw new ArgumentNullException("constraintName", "constraintName cannot be null.");
-			TransformConstraintData[] transformConstraints = this.transformConstraints.Items;
-			for (int i = 0, n = this.transformConstraints.Count; i < n; i++) {
-				TransformConstraintData transformConstraint = transformConstraints[i];
-				if (transformConstraint.name == constraintName) return transformConstraint;
-			}
-			return null;
-		}
-
-		// --- Path constraints
-
-		/// <summary>
-		/// Finds a path constraint by comparing each path constraint's name. It is more efficient to cache the results of this method
-		/// than to call it multiple times.
-		/// </summary>
-		/// <returns>May be null.</returns>
-		public PathConstraintData FindPathConstraint (string constraintName) {
-			if (constraintName == null) throw new ArgumentNullException("constraintName", "constraintName cannot be null.");
-			PathConstraintData[] pathConstraints = this.pathConstraints.Items;
-			for (int i = 0, n = this.pathConstraints.Count; i < n; i++) {
-				PathConstraintData constraint = pathConstraints[i];
-				if (constraint.name.Equals(constraintName)) return constraint;
-			}
-			return null;
-		}
-
-		// --- Physics constraints
-
-		/// <summary>
-		/// Finds a physics constraint by comparing each physics constraint's name. It is more efficient to cache the results of this
-		/// method than to call it multiple times.
-		/// </summary>
-		/// <returns>May be null.</returns>
-		public PhysicsConstraintData FindPhysicsConstraint (String constraintName) {
-			if (constraintName == null) throw new ArgumentNullException("constraintName", "constraintName cannot be null.");
-			PhysicsConstraintData[] physicsConstraints = this.physicsConstraints.Items;
-			for (int i = 0, n = this.physicsConstraints.Count; i < n; i++) {
-				PhysicsConstraintData constraint = (PhysicsConstraintData)physicsConstraints[i];
-				if (constraint.name.Equals(constraintName)) return constraint;
-			}
-			return null;
-		}
-
-		// ---
 
 		override public string ToString () {
 			return name ?? base.ToString();

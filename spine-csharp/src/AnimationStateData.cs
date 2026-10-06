@@ -1,16 +1,16 @@
 /******************************************************************************
  * Spine Runtimes License Agreement
- * Last updated July 28, 2023. Replaces all prior versions.
+ * Last updated April 5, 2025. Replaces all prior versions.
  *
- * Copyright (c) 2013-2023, Esoteric Software LLC
+ * Copyright (c) 2013-2026, Esoteric Software LLC
  *
  * Integration of the Spine Runtimes into software or otherwise creating
  * derivative works of the Spine Runtimes is permitted under the terms and
  * conditions of Section 2 of the Spine Editor License Agreement:
  * http://esotericsoftware.com/spine-editor-license
  *
- * Otherwise, it is permitted to integrate the Spine Runtimes into software or
- * otherwise create derivative works of the Spine Runtimes (collectively,
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
  * "Products"), provided that each user of the Products must obtain their own
  * Spine Editor license and redistribution of the Products in any form must
  * include this license and copyright notice.
@@ -23,8 +23,8 @@
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
  * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE
- * SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 using System;
@@ -32,7 +32,7 @@ using System.Collections.Generic;
 
 namespace Spine {
 
-	/// <summary>Stores mix (crossfade) durations to be applied when AnimationState animations are changed.</summary>
+	/// <summary>Stores mix (crossfade) durations to be applied when <see cref="AnimationState"/> animations are changed on the same track.</summary>
 	public class AnimationStateData {
 		internal SkeletonData skeletonData;
 		readonly Dictionary<AnimationPair, float> animationToMixTime = new Dictionary<AnimationPair, float>(AnimationPairComparer.Instance);
@@ -64,19 +64,19 @@ namespace Spine {
 		public void SetMix (Animation from, Animation to, float duration) {
 			if (from == null) throw new ArgumentNullException("from", "from cannot be null.");
 			if (to == null) throw new ArgumentNullException("to", "to cannot be null.");
-			AnimationPair key = new AnimationPair(from, to);
+			var key = new AnimationPair(from, to);
 			animationToMixTime.Remove(key);
 			animationToMixTime.Add(key, duration);
 		}
 
 		/// <summary>
-		/// The mix duration to use when changing from the specified animation to the other,
-		/// or the DefaultMix if no mix duration has been set.
+		/// Returns the mix duration to use when changing from the specified animation to the other on the same track,
+		/// or the <see cref="DefaultMix"/> if no mix duration has been set.
 		/// </summary>
 		public float GetMix (Animation from, Animation to) {
 			if (from == null) throw new ArgumentNullException("from", "from cannot be null.");
 			if (to == null) throw new ArgumentNullException("to", "to cannot be null.");
-			AnimationPair key = new AnimationPair(from, to);
+			var key = new AnimationPair(from, to);
 			float duration;
 			if (animationToMixTime.TryGetValue(key, out duration)) return duration;
 			return defaultMix;

@@ -1,16 +1,16 @@
 /******************************************************************************
  * Spine Runtimes License Agreement
- * Last updated July 28, 2023. Replaces all prior versions.
+ * Last updated April 5, 2025. Replaces all prior versions.
  *
- * Copyright (c) 2013-2023, Esoteric Software LLC
+ * Copyright (c) 2013-2026, Esoteric Software LLC
  *
  * Integration of the Spine Runtimes into software or otherwise creating
  * derivative works of the Spine Runtimes is permitted under the terms and
  * conditions of Section 2 of the Spine Editor License Agreement:
  * http://esotericsoftware.com/spine-editor-license
  *
- * Otherwise, it is permitted to integrate the Spine Runtimes into software or
- * otherwise create derivative works of the Spine Runtimes (collectively,
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
  * "Products"), provided that each user of the Products must obtain their own
  * Spine Editor license and redistribution of the Products in any form must
  * include this license and copyright notice.
@@ -23,33 +23,35 @@
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
  * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE
- * SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 using System;
 
 namespace Spine {
-	/// <summary>>An attachment with vertices that are transformed by one or more bones and can be deformed by a slot's
-	/// <see cref="Slot.Deform"/>.</summary>
+	/// <summary>Base class for an attachment with vertices that are transformed by one or more bones and can be deformed by
+	/// <see cref="SlotPose.Deform"/>.</summary>
 	public abstract class VertexAttachment : Attachment {
 		static int nextID = 0;
 		static readonly Object nextIdLock = new Object();
 
 		internal readonly int id;
-		internal VertexAttachment timelineAttachment;
 		internal int[] bones;
 		internal float[] vertices;
 		internal int worldVerticesLength;
 
 		/// <summary>Gets a unique ID for this attachment.</summary>
 		public int Id { get { return id; } }
+		/// <summary>The bones that affect the <see cref="Vertices"/>. The entries are, for each vertex, the number of bones affecting the
+		/// vertex followed by that many bone indices, which is <see cref="Skeleton.Bones"/> index. Null if this attachment has no
+		/// weights.</summary>
 		public int[] Bones { get { return bones; } set { bones = value; } }
+		/// <summary>The vertex positions in the bone's coordinate system. For a non-weighted attachment, the values are <c>x,y</c> pairs
+		/// for each vertex. For a weighted attachment, the values are <c>x,y,weight</c> triplets for each bone affecting each
+		/// vertex.</summary>
 		public float[] Vertices { get { return vertices; } set { vertices = value; } }
 		public int WorldVerticesLength { get { return worldVerticesLength; } set { worldVerticesLength = value; } }
-		/// <summary>Timelines for the timeline attachment are also applied to this attachment.
-		/// May be null if no attachment-specific timelines should be applied.</summary>
-		public VertexAttachment TimelineAttachment { get { return timelineAttachment; } set { timelineAttachment = value; } }
 
 		public VertexAttachment (string name)
 			: base(name) {
@@ -57,7 +59,6 @@ namespace Spine {
 			lock (VertexAttachment.nextIdLock) {
 				id = VertexAttachment.nextID++;
 			}
-			timelineAttachment = this;
 		}
 
 		/// <summary>Copy constructor.</summary>
@@ -83,13 +84,13 @@ namespace Spine {
 			worldVerticesLength = other.worldVerticesLength;
 		}
 
-		public void ComputeWorldVertices (Slot slot, float[] worldVertices) {
-			ComputeWorldVertices(slot, 0, worldVerticesLength, worldVertices, 0);
+		public void ComputeWorldVertices (Skeleton skeleton, Slot slot, float[] worldVertices) {
+			ComputeWorldVertices(skeleton, slot, 0, worldVerticesLength, worldVertices, 0);
 		}
 
 		/// <summary>
-		/// Transforms the attachment's local <see cref="Vertices"/> to world coordinates. If the slot's <see cref="Slot.Deform"/> is
-		/// not empty, it is used to deform the vertices.
+		/// Transforms the attachment's local <see cref="Vertices"/> to world coordinates. If <see cref="SlotPose.Deform"/>
+		/// is not empty, it is used to deform the vertices.
 		/// <para />
 		/// See <a href="http://esotericsoftware.com/spine-runtime-skeletons#World-transforms">World transforms</a> in the Spine
 		/// Runtimes Guide.
@@ -99,14 +100,14 @@ namespace Spine {
 		/// <param name="worldVertices">The output world vertices. Must have a length greater than or equal to <paramref name="offset"/> + <paramref name="count"/>.</param>
 		/// <param name="offset">The <paramref name="worldVertices"/> index to begin writing values.</param>
 		/// <param name="stride">The number of <paramref name="worldVertices"/> entries between the value pairs written.</param>
-		public virtual void ComputeWorldVertices (Slot slot, int start, int count, float[] worldVertices, int offset, int stride = 2) {
+		public virtual void ComputeWorldVertices (Skeleton skeleton, Slot slot, int start, int count, float[] worldVertices, int offset, int stride = 2) {
 			count = offset + (count >> 1) * stride;
-			ExposedList<float> deformArray = slot.deform;
+			ExposedList<float> deformArray = slot.AppliedPose.deform;
 			float[] vertices = this.vertices;
 			int[] bones = this.bones;
 			if (bones == null) {
 				if (deformArray.Count > 0) vertices = deformArray.Items;
-				Bone bone = slot.bone;
+				BonePose bone = slot.bone.AppliedPose;
 				float x = bone.worldX, y = bone.worldY;
 				float a = bone.a, b = bone.b, c = bone.c, d = bone.d;
 				for (int vv = start, w = offset; w < count; vv += 2, w += stride) {
@@ -122,14 +123,14 @@ namespace Spine {
 				v += n + 1;
 				skip += n;
 			}
-			Bone[] skeletonBones = slot.bone.skeleton.bones.Items;
+			Bone[] skeletonBones = skeleton.bones.Items;
 			if (deformArray.Count == 0) {
 				for (int w = offset, b = skip * 3; w < count; w += stride) {
 					float wx = 0, wy = 0;
 					int n = bones[v++];
 					n += v;
 					for (; v < n; v++, b += 3) {
-						Bone bone = skeletonBones[bones[v]];
+						BonePose bone = skeletonBones[bones[v]].AppliedPose;
 						float vx = vertices[b], vy = vertices[b + 1], weight = vertices[b + 2];
 						wx += (vx * bone.a + vy * bone.b + bone.worldX) * weight;
 						wy += (vx * bone.c + vy * bone.d + bone.worldY) * weight;
@@ -144,7 +145,7 @@ namespace Spine {
 					int n = bones[v++];
 					n += v;
 					for (; v < n; v++, b += 3, f += 2) {
-						Bone bone = skeletonBones[bones[v]];
+						BonePose bone = skeletonBones[bones[v]].AppliedPose;
 						float vx = vertices[b] + deform[f], vy = vertices[b + 1] + deform[f + 1], weight = vertices[b + 2];
 						wx += (vx * bone.a + vy * bone.b + bone.worldX) * weight;
 						wy += (vx * bone.c + vy * bone.d + bone.worldY) * weight;

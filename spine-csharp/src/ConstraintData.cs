@@ -1,16 +1,16 @@
 /******************************************************************************
  * Spine Runtimes License Agreement
- * Last updated July 28, 2023. Replaces all prior versions.
+ * Last updated April 5, 2025. Replaces all prior versions.
  *
- * Copyright (c) 2013-2023, Esoteric Software LLC
+ * Copyright (c) 2013-2026, Esoteric Software LLC
  *
  * Integration of the Spine Runtimes into software or otherwise creating
  * derivative works of the Spine Runtimes is permitted under the terms and
  * conditions of Section 2 of the Spine Editor License Agreement:
  * http://esotericsoftware.com/spine-editor-license
  *
- * Otherwise, it is permitted to integrate the Spine Runtimes into software or
- * otherwise create derivative works of the Spine Runtimes (collectively,
+ * Otherwise, it is permitted to integrate the Spine Runtimes into software
+ * or otherwise create derivative works of the Spine Runtimes (collectively,
  * "Products"), provided that each user of the Products must obtain their own
  * Spine Editor license and redistribution of the Products in any form must
  * include this license and copyright notice.
@@ -23,39 +23,38 @@
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
  * BUSINESS INTERRUPTION, OR LOSS OF USE, DATA, OR PROFITS) HOWEVER CAUSED AND
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE
- * SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 using System;
 using System.Collections.Generic;
 
 namespace Spine {
-	/// <summary>The base class for all constraint datas.</summary>
-	public abstract class ConstraintData {
-		internal readonly string name;
-		internal int order;
-		internal bool skinRequired;
+	/// <summary>
+	/// Determines how the <see cref="BonePose.scaleY"/> changes when <see cref="BonePose.ScaleX"/> is set.
+	/// </summary>
+	public enum ScaleYMode {
+		/// <summary>scaleY is not changed.</summary>
+		None,
+		/// <summary>scaleY is multiplied by the scaleX factor, preserving the bone's aspect ratio.</summary>
+		Uniform,
+		/// <summary>scaleY is divided by the scaleX factor, preserving the bone's area.</summary>
+		Volume
+	}
 
-		public ConstraintData (string name) {
-			if (name == null) throw new ArgumentNullException("name", "name cannot be null.");
-			this.name = name;
+	public interface IConstraintData : IPosedData {
+		string Name { get; }
+		IConstraint Create (Skeleton skeleton);
+	}
+
+	public abstract class ConstraintData<T, P> : PosedData<P>, IConstraintData
+		where T : IConstraint
+		where P : IPose<P> {
+		public ConstraintData (string name, P setup)
+			: base(name, setup) {
 		}
 
-		/// <summary> The constraint's name, which is unique across all constraints in the skeleton of the same type.</summary>
-		public string Name { get { return name; } }
-
-		/// <summary>The ordinal of this constraint for the order a skeleton's constraints will be applied by
-		/// <see cref="Skeleton.UpdateWorldTransform(Skeleton.Physics)"/>.</summary>
-		public int Order { get { return order; } set { order = value; } }
-
-		/// <summary>When true, <see cref="Skeleton.UpdateWorldTransform(Skeleton.Physics)"/> only updates this constraint if the <see cref="Skeleton.Skin"/>
-		/// contains this constraint.</summary>
-		/// <seealso cref="Skin.Constraints"/>
-		public bool SkinRequired { get { return skinRequired; } set { skinRequired = value; } }
-
-		override public string ToString () {
-			return name;
-		}
+		abstract public IConstraint Create (Skeleton skeleton);
 	}
 }
